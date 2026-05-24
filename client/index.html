@@ -1,19 +1,37 @@
 <!doctype html>
-<html lang="en">
-
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>{{project_title}}</title>    
-    <!-- THIS IS THE START OF A COMMENT BLOCK, BLOCK TO BE DELETED: Google Fonts here, example:
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+
+    <!-- SEO -->
+    <title>급등주주의보 - 실시간 급등 주식 알리미</title>
+    <meta name="description" content="토스증권 거래대금 상위 종목 중 20% 이상 급등한 종목을 매일 2회 자동 업데이트합니다. 국내외 급등 주식을 한눈에 확인하세요." />
+    <meta name="keywords" content="급등주, 급등 주식, 주식 알리미, 토스증권, 거래대금, 상승 종목, 주식 스크리너" />
+    <meta name="author" content="급등주주의보" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://surge-stock-alert.vercel.app/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="급등주주의보 - 실시간 급등 주식 알리미" />
+    <meta property="og:description" content="토스증권 거래대금 상위 종목 중 20% 이상 급등한 종목을 매일 2회 자동 업데이트합니다." />
+    <meta property="og:url" content="https://surge-stock-alert.vercel.app/" />
+    <meta property="og:locale" content="ko_KR" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0a0e1a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="급등주주의보" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    THIS IS THE END OF A COMMENT BLOCK, BLOCK TO BE DELETED -->
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet" />
   </head>
-
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
@@ -22,5 +40,4 @@
       src="%VITE_ANALYTICS_ENDPOINT%/umami"
       data-website-id="%VITE_ANALYTICS_WEBSITE_ID%"></script>
   </body>
-
 </html>

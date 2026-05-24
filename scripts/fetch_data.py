@@ -5,8 +5,8 @@
 Yahoo Finance에서 상세 정보를 붙여 JSON으로 저장합니다.
 
 실행 방법:
-  pip install selenium yfinance requests beautifulsoup4
-  python fetch_data.py
+  pip install selenium yfinance requests beautifulsoup4 webdriver-manager
+  python scripts/fetch_data.py
 """
 
 import json
@@ -15,8 +15,6 @@ import sys
 import os
 import re
 from datetime import datetime, timezone, timedelta
-import requests
-from bs4 import BeautifulSoup
 
 try:
     import yfinance as yf
@@ -28,8 +26,8 @@ except ImportError:
 # 설정값
 # ─────────────────────────────────────────────
 TOSS_URL = "https://www.tossinvest.com/?market=all&live-chart=biggest_market_amount&duration=realtime"
-SURGE_THRESHOLD = 20.0   # 급등 기준 (%)
-TOP_N = 100              # 거래대금 상위 N개 종목
+SURGE_THRESHOLD = 20.0
+TOP_N = 100
 OUTPUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "stocks.json")
 KST = timezone(timedelta(hours=9))
 
@@ -37,7 +35,6 @@ KST = timezone(timedelta(hours=9))
 # 1단계: 토스증권 Selenium 크롤링
 # ─────────────────────────────────────────────
 def fetch_toss_data():
-    """Selenium으로 토스증권 거래대금 상위 종목 데이터를 가져옵니다."""
     print("[1/3] 토스증권 데이터 수집 중 (Selenium)...")
 
     try:
@@ -62,9 +59,17 @@ def fetch_toss_data():
         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     )
-    # Github Actions에서 chromedriver 경로 자동 감지
+
+    driver = None
     try:
-        driver = webdriver.Chrome(options=options)
+        # webdriver-manager로 자동 드라이버 관리 (Github Actions 호환)
+        try:
+            from webdriver_manager.chrome import ChromeDriverManager
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=options)
+        except Exception:
+            # fallback: 시스템 chromedriver 사용
+            driver = webdriver.Chrome(options=options)
     except Exception as e:
         print(f"  [오류] Chrome 드라이버 실행 실패: {e}")
         return []
@@ -72,13 +77,10 @@ def fetch_toss_data():
     stocks = []
     try:
         driver.get(TOSS_URL)
-        # JS 렌더링 대기
         time.sleep(10)
 
-        # 거래대금 필터 버튼 클릭 확인
+        # 거래대금 버튼 클릭
         try:
-            wait = WebDriverWait(driver, 15)
-            # 거래대금 버튼 찾아 클릭
             btns = driver.find_elements(By.XPATH, "//button[@role='radio']")
             for btn in btns:
                 if btn.text.strip() == "거래대금":
@@ -88,28 +90,26 @@ def fetch_toss_data():
         except Exception:
             pass
 
-        # 추가 대기
         time.sleep(5)
 
-        # 페이지 소스 가져오기
+        from bs4 import BeautifulSoup
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
         content = soup.get_text(separator="\n", strip=True)
         lines = [l.strip() for l in content.split("\n") if l.strip()]
-
         stocks = parse_toss_lines(lines)
 
     except Exception as e:
         print(f"  [오류] 크롤링 실패: {e}")
     finally:
-        driver.quit()
+        if driver:
+            driver.quit()
 
     print(f"  → {len(stocks)}개 종목 수집 완료")
     return stocks
 
 
 def parse_toss_lines(lines):
-    """토스증권 텍스트 라인에서 종목 데이터를 파싱합니다."""
     stocks = []
     start_idx = 0
     for idx, line in enumerate(lines):
