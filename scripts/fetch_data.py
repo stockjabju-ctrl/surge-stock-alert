@@ -350,6 +350,20 @@ TICKER_MAP = {
     "스위트그린": "SG", "맥스리니어": "MXL",
     "캘러보 그로우아스": "CALB",
     "팸비나 파이프라인": "PPL.TO",
+    # ── 추가 티커 ──
+    "하모닉": "HLIT",
+    "하일리온 홀딩스": "HYLN",
+    "ASTX": "ASTX",
+    "피코세라(ADR)": "PCSA",
+    "HP": "HPQ",
+    "HP 인크": "HPQ",
+    "버텍스 파마슈티컬스": "VRTX",
+    "넥스트라 에너지": "NEE",
+    "사운드하운드 AI": "SOUN",
+    "허닝웰 인터내셔널": "HON",
+    "아너스트 컴퍼니": "HNST",
+    "레이도스 홀딩스": "LDOS",
+    "웰스파고": "WFC",
 }
 
 COUNTRY_KO = {
@@ -363,12 +377,36 @@ COUNTRY_KO = {
     "Australia": "호주", "India": "인도", "Brazil": "브라질",
 }
 
+def search_ticker_yahoo(name: str) -> str | None:
+    """종목명으로 야후 파이낸스 검색 API에서 티커 자동 조회"""
+    try:
+        import urllib.request, urllib.parse, json as _json
+        query = urllib.parse.quote(name)
+        url = f"https://query2.finance.yahoo.com/v1/finance/search?q={query}&quotesCount=3&newsCount=0&enableFuzzyQuery=false"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = _json.loads(resp.read())
+        quotes = data.get("finance", {}).get("result", [{}])[0].get("quotes", [])
+        # 주식(EQUITY) 타입만 선택
+        for q in quotes:
+            if q.get("quoteType") == "EQUITY":
+                sym = q.get("symbol", "")
+                if sym:
+                    print(f"    [야후 검색] '{name}' → {sym} ({q.get('shortname', '')})")
+                    return sym
+    except Exception as e:
+        print(f"    [야후 검색 실패] {name}: {e}")
+    return None
+
+
 def get_ticker(name):
     if name in TICKER_MAP:
         return TICKER_MAP[name]
-    if re.match(r'^[A-Z0-9.]+$', name):
+    # 이미 영문 티커 형식이면 그대로 반환
+    if re.match(r'^[A-Z0-9.]{1,6}$', name):
         return name
-    return None
+    # TICKER_MAP에 없는 한글 종목명 → 야후 파이낸스 검색으로 자동 조회
+    return search_ticker_yahoo(name)
 
 def fetch_yahoo_info(ticker, usd_krw):
     try:
