@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-05-25 02:18 KST",
-  "updated_at_iso": "2026-05-25T02:18:28.521221+09:00",
+  "updated_at": "2026-05-25 02:36 KST",
+  "updated_at_iso": "2026-05-25T02:36:33.271925+09:00",
   "next_update": "2026-05-25 17:30 KST",
   "threshold": 15.0,
   "total_scanned": 100,
@@ -12,6 +12,7 @@
     {
       "rank": 20,
       "name": "HP",
+      "toss_ticker": "",
       "price": "37,948원",
       "change_pct": 15.25,
       "volume": "1,596만원",
@@ -33,6 +34,7 @@
     {
       "rank": 21,
       "name": "AXT",
+      "toss_ticker": "",
       "price": "211,737원",
       "change_pct": 16.36,
       "volume": "1,573만원",
@@ -54,6 +56,7 @@
     {
       "rank": 38,
       "name": "ASTX",
+      "toss_ticker": "",
       "price": "74,799원",
       "change_pct": 20.02,
       "volume": "7,366,708원",
@@ -75,6 +78,7 @@
     {
       "rank": 46,
       "name": "아카리 테라퓨틱스(ADR)",
+      "toss_ticker": "",
       "price": "27,468원",
       "change_pct": 255.44,
       "volume": "6,130,340원",
@@ -96,6 +100,7 @@
     {
       "rank": 55,
       "name": "하모닉",
+      "toss_ticker": "",
       "price": "22,853원",
       "change_pct": 19.68,
       "volume": "5,021,690원",
@@ -117,6 +122,7 @@
     {
       "rank": 71,
       "name": "리게티 컴퓨팅",
+      "toss_ticker": "",
       "price": "39,722원",
       "change_pct": 19.87,
       "volume": "4,646,251원",
@@ -138,6 +144,7 @@
     {
       "rank": 73,
       "name": "하일리온 홀딩스",
+      "toss_ticker": "",
       "price": "9,005원",
       "change_pct": 42.61,
       "volume": "4,578,999원",
@@ -159,6 +166,7 @@
     {
       "rank": 77,
       "name": "나비타스 세미컨덕터",
+      "toss_ticker": "",
       "price": "43,977원",
       "change_pct": 19.97,
       "volume": "4,274,464원",
@@ -180,6 +188,7 @@
     {
       "rank": 88,
       "name": "파이어플라이 에어로스페이스",
+      "toss_ticker": "",
       "price": "74,423원",
       "change_pct": 15.49,
       "volume": "3,989,762원",
@@ -201,22 +210,23 @@
     {
       "rank": 95,
       "name": "피코세라(ADR)",
+      "toss_ticker": "",
       "price": "9,953원",
       "change_pct": 194.22,
       "volume": "3,664,179원",
       "volume_num": 3664179.0,
-      "ticker": "PCSA",
-      "country": "미국",
-      "country_en": "United States",
-      "ceo": "Mr. George K. Ng Esq., J.D.",
-      "market_cap": "$7M",
-      "market_cap_krw": "약 106억원",
-      "sector": "Healthcare",
-      "industry": "Biotechnology",
-      "business_summary": "Processa Pharmaceuticals, Inc., a clinical-stage biopharmaceutical company, develops cancer therapy drugs to improve the safety and efficacy of cancer treatment in the United States. The company's dru",
-      "short_interest": "5.7% (유동주식 대비)",
+      "ticker": "PCLA",
+      "country": "일본",
+      "country_en": "Japan",
+      "ceo": "Dr. Hiroshi  Furukawa",
+      "market_cap": "$64M",
+      "market_cap_krw": "약 973억원",
+      "sector": "Communication Services",
+      "industry": "Telecom Services",
+      "business_summary": "PicoCELA Inc. engages in the manufacture, installation, and service for enterprise wireless mesh solutions in Japan. The company offers mesh Wi-Fi access points, a PCWL series, which are equipped with",
+      "short_interest": "0.1% (유동주식 대비)",
       "short_interest_source": "fintel.io",
-      "website": "https://www.processapharmaceuticals.com",
+      "website": "https://picocela.com",
       "exchange": "NCM"
     }
   ]
