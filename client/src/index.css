@@ -1,7 +1,7 @@
 /* ================================================================
-   급등주주의보 — Toss Securities Inspired Design System
-   Design: Clean white/blue fintech UI (Toss-style)
-   Fonts: Pretendard (body/UI) / JetBrains Mono (numbers)
+   급등주주의보 — Toss Securities Inspired Design System v3
+   Design: Toss list style (clean rows, no accent bar)
+   Fonts: Pretendard (body) / JetBrains Mono (numbers)
    ================================================================ */
 
 @import "tailwindcss";
@@ -37,146 +37,191 @@
 
 :root {
   --radius: 0.75rem;
-
-  /* Toss-style Light Palette */
-  --background: oklch(0.98 0.002 250);
-  --foreground: oklch(0.15 0.01 250);
-
+  --background: oklch(0.975 0.002 250);
+  --foreground: oklch(0.13 0.01 250);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.01 250);
-
+  --card-foreground: oklch(0.13 0.01 250);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.01 250);
-
-  /* Toss Blue */
-  --primary: oklch(0.52 0.22 260);
+  --popover-foreground: oklch(0.13 0.01 250);
+  --primary: oklch(0.50 0.22 260);
   --primary-foreground: oklch(1 0 0);
-
   --secondary: oklch(0.95 0.005 250);
   --secondary-foreground: oklch(0.35 0.01 250);
-
   --muted: oklch(0.96 0.003 250);
   --muted-foreground: oklch(0.55 0.01 250);
-
   --accent: oklch(0.94 0.008 260);
-  --accent-foreground: oklch(0.52 0.22 260);
-
-  --destructive: oklch(0.58 0.22 25);
+  --accent-foreground: oklch(0.50 0.22 260);
+  --destructive: oklch(0.57 0.22 25);
   --destructive-foreground: oklch(1 0 0);
-
-  --border: oklch(0.91 0.005 250);
-  --input: oklch(0.91 0.005 250);
-  --ring: oklch(0.52 0.22 260);
-
-  /* Custom tokens */
-  --surge-red: oklch(0.58 0.22 25);
-  --surge-orange: oklch(0.68 0.18 45);
-  --toss-blue: oklch(0.52 0.22 260);
-  --toss-blue-light: oklch(0.94 0.04 260);
-  --text-primary: oklch(0.15 0.01 250);
-  --text-secondary: oklch(0.45 0.01 250);
-  --text-tertiary: oklch(0.65 0.008 250);
-  --surface-1: oklch(0.98 0.002 250);
-  --surface-2: oklch(0.96 0.003 250);
+  --border: oklch(0.91 0.004 250);
+  --input: oklch(0.91 0.004 250);
+  --ring: oklch(0.50 0.22 260);
+  --surge-red: oklch(0.57 0.22 25);
+  --toss-blue: oklch(0.50 0.22 260);
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  html {
-    -webkit-text-size-adjust: 100%;
-  }
+  * { @apply border-border outline-ring/50; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
     @apply bg-background text-foreground;
     font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont,
       'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    background-color: oklch(0.98 0.002 250);
   }
-  button:not(:disabled),
-  [role="button"]:not([aria-disabled="true"]),
-  a[href],
-  select:not(:disabled) {
-    @apply cursor-pointer;
-  }
+  button:not(:disabled), [role="button"]:not([aria-disabled="true"]),
+  a[href], select:not(:disabled) { @apply cursor-pointer; }
 }
 
 @layer components {
+  /* ── Layout ── */
   .container {
     width: 100%;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 1rem;
-    padding-right: 1rem;
-    max-width: 480px; /* 모바일 퍼스트: 최대 480px */
+    padding-left: 0;
+    padding-right: 0;
+    max-width: 480px;
   }
   @media (min-width: 768px) {
-    .container {
-      max-width: 640px;
-      padding-left: 1.5rem;
-      padding-right: 1.5rem;
-    }
+    .container { max-width: 640px; }
   }
-  .flex {
-    min-height: 0;
-    min-width: 0;
+  .flex { min-height: 0; min-width: 0; }
+
+  /* ── Hero ── */
+  .hero-gradient {
+    background: linear-gradient(160deg,
+      oklch(0.50 0.22 260) 0%,
+      oklch(0.43 0.20 270) 60%,
+      oklch(0.37 0.17 280) 100%
+    );
   }
 
-  /* ── Toss-style card ── */
-  .toss-card {
+  /* ── Toss-style list row (no card shadow, just row with divider) ── */
+  .stock-row {
     background: oklch(1 0 0);
-    border-radius: 16px;
-    box-shadow: 0 1px 3px oklch(0 0 0 / 0.06), 0 1px 2px oklch(0 0 0 / 0.04);
-    transition: box-shadow 0.18s ease, transform 0.18s ease;
+    border-bottom: 1px solid oklch(0.93 0.003 250);
+    transition: background 0.12s ease;
   }
-  .toss-card:hover {
-    box-shadow: 0 4px 16px oklch(0 0 0 / 0.08);
-    transform: translateY(-1px);
+  .stock-row:active {
+    background: oklch(0.97 0.002 250);
   }
-  .toss-card:active {
-    transform: scale(0.99);
+  .stock-row:last-child {
+    border-bottom: none;
   }
 
-  /* ── Surge number ── */
-  .surge-number {
-    font-family: 'JetBrains Mono', 'Pretendard Variable', monospace;
-    font-weight: 700;
-    color: oklch(0.58 0.22 25);
-    letter-spacing: -0.02em;
-  }
-  .surge-number-big {
+  /* ── Surge numbers ── */
+  .surge-pct {
     font-family: 'JetBrains Mono', monospace;
     font-weight: 700;
-    color: oklch(0.58 0.22 25);
-    font-size: 1.75rem;
+    color: oklch(0.57 0.22 25);
+    letter-spacing: -0.02em;
+  }
+  .surge-pct-xl {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 1.6rem;
     line-height: 1;
+    color: oklch(0.57 0.22 25);
     letter-spacing: -0.03em;
   }
-
-  /* ── Country badge ── */
-  .country-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 10px;
-    border-radius: 100px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    background: oklch(0.96 0.003 250);
-    color: oklch(0.35 0.01 250);
-    border: 1.5px solid oklch(0.91 0.005 250);
+  .price-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: oklch(0.55 0.01 250);
   }
-  .country-badge-selected {
+
+  /* ── Rank number ── */
+  .rank-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: oklch(0.65 0.008 250);
+    min-width: 28px;
+    text-align: right;
+  }
+
+  /* ── Ticker badge ── */
+  .ticker-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: oklch(0.50 0.22 260);
     background: oklch(0.94 0.04 260);
-    color: oklch(0.52 0.22 260);
-    border-color: oklch(0.52 0.22 260 / 0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  /* ── Country group header ── */
+  .country-group-header {
+    background: oklch(0.965 0.003 250);
+    border-bottom: 1px solid oklch(0.91 0.004 250);
+    padding: 8px 16px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: oklch(0.40 0.01 250);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  /* ── Detail expand ── */
+  .detail-expand {
+    animation: expandDown 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  @keyframes expandDown {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Info rows inside detail ── */
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 9px 0;
+    border-bottom: 1px solid oklch(0.94 0.002 250);
+  }
+  .info-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .info-label {
+    font-size: 0.78rem;
+    color: oklch(0.55 0.01 250);
+    font-weight: 500;
+    flex-shrink: 0;
+    margin-right: 12px;
+  }
+  .info-value {
+    font-size: 0.82rem;
+    color: oklch(0.18 0.01 250);
+    font-weight: 600;
+    text-align: right;
+    word-break: break-word;
+  }
+
+  /* ── Update card ── */
+  .update-card {
+    background: oklch(1 0 0);
+    border-radius: 16px;
+    box-shadow: 0 1px 4px oklch(0 0 0 / 0.06);
+    margin: 0 16px 12px;
+  }
+
+  /* ── Section card wrapper ── */
+  .section-card {
+    background: oklch(1 0 0);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px oklch(0 0 0 / 0.06);
+    margin: 0 16px 12px;
   }
 
   /* ── Toss-style button ── */
-  .toss-btn-primary {
-    background: oklch(0.52 0.22 260);
+  .toss-btn {
+    background: oklch(0.50 0.22 260);
     color: white;
     border-radius: 12px;
     font-weight: 600;
@@ -184,100 +229,13 @@
     padding: 12px 20px;
     transition: all 0.15s ease;
   }
-  .toss-btn-primary:hover {
-    background: oklch(0.47 0.22 260);
-  }
-  .toss-btn-primary:active {
-    transform: scale(0.97);
-  }
+  .toss-btn:active { transform: scale(0.97); }
 
-  /* ── Detail expand animation ── */
-  .detail-expand {
-    animation: expandDown 0.22s cubic-bezier(0.23, 1, 0.32, 1);
-    overflow: hidden;
-  }
-  @keyframes expandDown {
-    from { opacity: 0; max-height: 0; }
-    to   { opacity: 1; max-height: 600px; }
-  }
-
-  /* ── Hero section ── */
-  .hero-gradient {
-    background: linear-gradient(160deg,
-      oklch(0.52 0.22 260) 0%,
-      oklch(0.45 0.20 270) 60%,
-      oklch(0.38 0.18 280) 100%
-    );
-  }
-
-  /* ── Update time badge ── */
-  .update-badge {
-    background: oklch(0.94 0.04 260);
-    color: oklch(0.52 0.22 260);
-    border-radius: 100px;
-    padding: 4px 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-  }
-
-  /* ── Ticker mono ── */
-  .ticker-mono {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    color: oklch(0.52 0.22 260);
-    background: oklch(0.94 0.04 260);
-    padding: 2px 7px;
-    border-radius: 5px;
-  }
-
-  /* ── Info row ── */
-  .info-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding: 10px 0;
-    border-bottom: 1px solid oklch(0.94 0.003 250);
-  }
-  .info-row:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-  }
-  .info-label {
-    font-size: 0.8rem;
-    color: oklch(0.55 0.01 250);
-    font-weight: 500;
-    flex-shrink: 0;
-    margin-right: 12px;
-  }
-  .info-value {
-    font-size: 0.85rem;
-    color: oklch(0.2 0.01 250);
-    font-weight: 600;
-    text-align: right;
-    word-break: break-word;
-  }
-
-  /* ── Disclaimer section ── */
+  /* ── Disclaimer ── */
   .disclaimer-section {
-    background: oklch(0.96 0.003 250);
-    border-top: 1px solid oklch(0.91 0.005 250);
-  }
-
-  /* ── Rank number ── */
-  .rank-num {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: oklch(0.65 0.008 250);
-    min-width: 24px;
-  }
-  .rank-num-top {
-    color: oklch(0.58 0.22 25);
+    background: oklch(0.965 0.003 250);
+    border-top: 1px solid oklch(0.91 0.004 250);
+    margin-top: 16px;
   }
 
   /* ── PWA toast ── */
@@ -286,11 +244,11 @@
     bottom: 24px;
     left: 50%;
     transform: translateX(-50%);
-    background: oklch(0.15 0.01 250);
+    background: oklch(0.13 0.01 250);
     color: white;
-    border-radius: 16px;
-    padding: 14px 20px;
-    box-shadow: 0 8px 32px oklch(0 0 0 / 0.2);
+    border-radius: 20px;
+    padding: 16px 20px;
+    box-shadow: 0 8px 32px oklch(0 0 0 / 0.25);
     z-index: 100;
     width: calc(100% - 32px);
     max-width: 440px;
@@ -299,5 +257,15 @@
   @keyframes slideUp {
     from { opacity: 0; transform: translateX(-50%) translateY(20px); }
     to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+  /* ── Story card ── */
+  .story-card {
+    background: oklch(1 0 0 / 0.12);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
   }
 }

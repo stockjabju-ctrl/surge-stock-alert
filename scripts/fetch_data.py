@@ -29,7 +29,7 @@ except ImportError:
 # ─────────────────────────────────────────────
 # 토스증권 해외주식 거래대금 상위 탭
 TOSS_URL = "https://www.tossinvest.com/?market=overseas&live-chart=biggest_market_amount&duration=realtime"
-SURGE_THRESHOLD = 20.0
+SURGE_THRESHOLD = 15.0
 TOP_N = 100
 OUTPUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "stocks.json")
 KST = timezone(timedelta(hours=9))
@@ -41,8 +41,8 @@ DEFAULT_USD_KRW = 1440.0
 ETF_EXCLUDE_TICKERS = {
     "QQQ", "SPY", "TQQQ", "SQQQ", "SOXL", "SOXS", "VOO", "IWM",
     "JEPQ", "SMH", "SOXX", "XLE", "SCHD", "VXX", "BIL", "SGOV",
-    "USO", "NVDL", "TSLL", "DRAM", "KORU", "TZA", "BOXX", "MUU",
-    "SNXX", "NASA", "RGTX", "BIL", "UVXY", "SVXY", "SPXL", "SPXS",
+    "USO",     "NVDL", "TSLL", "DRAM", "KORU", "TZA", "BOXX", "MUU",
+    "SNXX", "NASA", "RGTX", "BIL", "UVXY", "RGTI", "SVXY", "SPXL", "SPXS",
     "LABU", "LABD", "TECL", "TECS", "FNGU", "FNGD", "ARKK", "ARKG",
     "GLD", "SLV", "TLT", "HYG", "LQD", "EEM", "EFA", "VTI", "VEA",
     "IEMG", "AGG", "BNDX", "VNQ", "XLRE", "XLF", "XLK", "XLV",
