@@ -263,22 +263,36 @@ def parse_toss_lines(lines):
     rank = 1
     max_rank = TOP_N + 10
 
-    TICKER_RE = re.compile(r'^[A-Z][A-Z0-9]{0,6}$')   # 티커 패턴: 대문자로 시작, 최대 7자
+    # 티커 패턴: 대문자로 시작, 1~7자 영대문자+숫자
+    TICKER_RE = re.compile(r'^[A-Z][A-Z0-9]{0,6}$')
+    # 종목명 끝에 붙은 티커 감지 (예: "파이어플라이 에어로스페이스 FLY")
+    INLINE_TICKER_RE = re.compile(r'^(.+?)\s+([A-Z][A-Z0-9]{0,6})$')
 
     while i < len(lines) and rank <= max_rank:
         line = lines[i].strip()
         if line.isdigit() and int(line) == rank:
             try:
-                name = lines[i + 1].strip()
+                name_raw = lines[i + 1].strip()
 
-                # ── 티커 배지 감지 ──────────────────────────────
-                # 종목명 바로 다음 줄이 티커 패턴이면 캡처, 아니면 티커 없음
+                # ── 티커 배지 감지 (두 가지 경우 처리) ────────────────
+                # Case A: 다음 줄이 티커 (가장 흔한 경우)
                 candidate = lines[i + 2].strip() if i + 2 < len(lines) else ""
                 if TICKER_RE.match(candidate):
                     toss_ticker = candidate
-                    off = 1   # 티커 줄 있음 → 나머지 필드 +1 이동
+                    name = name_raw
+                    off = 1
+                # Case B: 종목명 줄 끝에 티커가 붙어있는 경우
+                # (예: "파이어플라이 에어로스페이스 FLY")
+                # 단, 순수 영문 짧은 종목명(예: "HP")은 Case A로 이미 처리됨
                 else:
-                    toss_ticker = ""
+                    inline = INLINE_TICKER_RE.match(name_raw)
+                    if inline and not TICKER_RE.match(name_raw):
+                        # 종목명 자체 전체가 티커 패턴이 아닐 때만 분리
+                        name = inline.group(1).strip()
+                        toss_ticker = inline.group(2)
+                    else:
+                        name = name_raw
+                        toss_ticker = ""
                     off = 0
 
                 price_raw  = lines[i + 2 + off].strip()
@@ -287,8 +301,9 @@ def parse_toss_lines(lines):
 
                 # 가격·등락률·거래대금 검증 (티커 감지 오류 방지)
                 if not re.search(r'%', change_raw):
-                    # change_raw가 % 없으면 off 추정 틀림 → 재시도
+                    # change_raw에 %가 없으면 off 추정 틀림 → 원위치 재시도
                     toss_ticker = ""
+                    name = name_raw
                     off = 0
                     price_raw  = lines[i + 2].strip()
                     change_raw = lines[i + 3].strip()
