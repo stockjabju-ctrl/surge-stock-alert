@@ -176,41 +176,58 @@ function RefreshModal({ onClose }: { onClose: () => void }) {
 }
 
 // ─── 쿠팡파트너스 광고 팝업 ───────────────────────────────────────
+// 흐름: 안내 팝업 → "3초만 시간을 내주세요" 버튼 클릭 → 쿠팡 새탭 열림 + 카운트다운 → "상세정보 확인" 버튼
 function CoupangAdModal({ onComplete, onClose }: { onComplete: () => void; onClose: () => void }) {
+  const [phase, setPhase] = useState<"intro" | "counting" | "done">("intro");
   const [seconds, setSeconds] = useState(3);
-  const [canClose, setCanClose] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
+  const handleAdClick = () => {
     window.open(COUPANG_URL, "_blank", "noopener,noreferrer");
-    const timer = setInterval(() => {
+    setPhase("counting");
+    timerRef.current = setInterval(() => {
       setSeconds(s => {
-        if (s <= 1) { clearInterval(timer); setCanClose(true); return 0; }
+        if (s <= 1) {
+          clearInterval(timerRef.current!);
+          setPhase("done");
+          return 0;
+        }
         return s - 1;
       });
     }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  };
+
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center"
       style={{ background: "oklch(0 0 0 / 0.7)" }}>
       <div className="w-full max-w-sm rounded-t-2xl overflow-hidden" style={{ background: "oklch(1 0 0)" }}>
         <div className="px-5 pt-5 pb-3">
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center justify-between mb-2">
             <span className="font-bold text-base" style={{ color: "oklch(0.13 0.01 250)" }}>
-              📢 잠깐! 광고 후 정보 확인
+              📢 서비스 이용 안내
             </span>
-            {canClose && (
+            {phase === "intro" && (
               <button onClick={onClose} className="text-lg leading-none" style={{ color: "oklch(0.55 0.01 250)" }}>×</button>
             )}
           </div>
           <p className="text-xs leading-relaxed" style={{ color: "oklch(0.55 0.01 250)" }}>
-            이 서비스는 쿠팡파트너스 수익으로 운영됩니다.<br />
-            광고 페이지가 새 탭으로 열렸습니다. <strong>3초</strong> 후 종목 상세정보를 확인하실 수 있습니다.
+            이 서비스는 쿠팡파트너스 수익으로 <strong>무료</strong> 운영됩니다.<br />
+            아래 버튼을 눌러 광고를 확인하시면<br />
+            종목 상세정보를 보실 수 있습니다.
           </p>
         </div>
+
         <div className="px-5 py-4 flex items-center justify-center">
-          {!canClose ? (
+          {phase === "intro" && (
+            <button onClick={handleAdClick}
+              className="w-full py-3.5 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2"
+              style={{ background: "oklch(0.50 0.22 260)" }}>
+              ⏱ 3초만 시간을 내주세요
+            </button>
+          )}
+          {phase === "counting" && (
             <div className="flex flex-col items-center gap-2">
               <div className="w-16 h-16 rounded-full flex items-center justify-center"
                 style={{ background: "oklch(0.94 0.04 260 / 0.5)", border: "3px solid oklch(0.50 0.22 260)" }}>
@@ -218,7 +235,8 @@ function CoupangAdModal({ onComplete, onClose }: { onComplete: () => void; onClo
               </div>
               <p className="text-xs" style={{ color: "oklch(0.55 0.01 250)" }}>잠시 기다려주세요...</p>
             </div>
-          ) : (
+          )}
+          {phase === "done" && (
             <button onClick={onComplete}
               className="w-full py-3.5 rounded-xl font-bold text-sm text-white"
               style={{ background: "oklch(0.50 0.22 260)" }}>
@@ -226,6 +244,7 @@ function CoupangAdModal({ onComplete, onClose }: { onComplete: () => void; onClo
             </button>
           )}
         </div>
+
         <div className="px-5 pb-5">
           <div className="p-3 rounded-xl text-xs leading-relaxed"
             style={{ background: "oklch(0.96 0.003 250)", color: "oklch(0.55 0.01 250)" }}>
