@@ -2,8 +2,10 @@ name: 급등주 데이터 자동 업데이트
 
 on:
   schedule:
-    - cron: "30 20 * * 0-4"
-    - cron: "0 2 * * 1-5"
+    # 오후 5:30 KST = 08:30 UTC (월~금)
+    - cron: "30 8 * * 1-5"
+    # 오후 11:00 KST = 14:00 UTC (월~금)
+    - cron: "0 14 * * 1-5"
   workflow_dispatch:
 
 jobs:
