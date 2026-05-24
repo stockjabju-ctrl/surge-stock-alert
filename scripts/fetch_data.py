@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-급등주주의보 - 데이터 수집 스크립트 v2
-토스증권 해외주식 거래대금 상위 종목을 가져와 20% 이상 급등 개별종목을 필터링하고
+급등주주의보 - 데이터 수집 스크립트 v3
+토스증권 해외주식 거래대금 상위 종목을 가져와 15% 이상 급등 개별종목을 필터링하고
 Yahoo Finance에서 상세 정보를 붙여 JSON으로 저장합니다.
 
-변경사항:
-- 토스증권 해외주식 탭 기준 (market=overseas)
-- ETF, 레버리지, 인버스 상품 제외
-- 한화 시가총액 환산 추가
-- 업데이트 시간 제한 (토17:30~일21:00 제외)
+변경사항 v3:
+- market=us (해외탭 정확한 파라미터로 수정)
+- RGTI(리게티 컴퓨팅) ETF 제외 목록에서 제거 (일반 주식)
+- Selenium 스크롤 추가 → 100개 전체 로딩
+- 업데이트 스케줄 오후 5:30 / 오후 11:00 KST
 """
 
 import json
@@ -27,133 +27,126 @@ except ImportError:
 # ─────────────────────────────────────────────
 # 설정값
 # ─────────────────────────────────────────────
-# 토스증권 해외주식 거래대금 상위 탭
-TOSS_URL = "https://www.tossinvest.com/?market=overseas&live-chart=biggest_market_amount&duration=realtime"
+# 토스증권 해외주식(미국) 거래대금 탭 — market=us 가 실제 해외 탭 파라미터
+TOSS_URL = "https://www.tossinvest.com/?market=us&live-chart=biggest_market_amount&duration=realtime"
 SURGE_THRESHOLD = 15.0
 TOP_N = 100
 OUTPUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "stocks.json")
 KST = timezone(timedelta(hours=9))
 
-# USD/KRW 환율 (실시간 환율 없을 시 기본값)
 DEFAULT_USD_KRW = 1440.0
 
-# ETF / 레버리지 / 인버스 제외 키워드 (티커 또는 종목명에 포함 시 제외)
+# ─── ETF / 레버리지 / 인버스 제외 목록 ───
+# ※ RGTI(리게티 컴퓨팅)은 양자컴퓨터 개별주 → 제외 목록에서 삭제
 ETF_EXCLUDE_TICKERS = {
     "QQQ", "SPY", "TQQQ", "SQQQ", "SOXL", "SOXS", "VOO", "IWM",
     "JEPQ", "SMH", "SOXX", "XLE", "SCHD", "VXX", "BIL", "SGOV",
-    "USO",     "NVDL", "TSLL", "DRAM", "KORU", "TZA", "BOXX", "MUU",
-    "SNXX", "NASA", "RGTX", "BIL", "UVXY", "RGTI", "SVXY", "SPXL", "SPXS",
+    "USO", "NVDL", "TSLL", "DRAM", "KORU", "TZA", "BOXX", "MUU",
+    "SNXX", "NASA", "RGTX", "UVXY", "SVXY", "SPXL", "SPXS",
     "LABU", "LABD", "TECL", "TECS", "FNGU", "FNGD", "ARKK", "ARKG",
     "GLD", "SLV", "TLT", "HYG", "LQD", "EEM", "EFA", "VTI", "VEA",
     "IEMG", "AGG", "BNDX", "VNQ", "XLRE", "XLF", "XLK", "XLV",
-    "XLI", "XLY", "XLP", "XLU", "XLB", "XLC", "XLRE",
+    "XLI", "XLY", "XLP", "XLU", "XLB", "XLC",
     "JEPI", "DIVO", "QYLD", "XYLD", "RYLD",
     "UPRO", "UMDD", "UDOW", "SDOW", "SPDN",
     "FXI", "KWEB", "ASHR", "CQQQ",
+    "IVV", "IBIT", "FBTC", "GBTC",
+    # 국내 ETF/레버리지
+    "NVDU", "BEX", "SMCY",
 }
 
 ETF_EXCLUDE_KEYWORDS = [
     "etf", "etn", "fund", "trust", "index", "ultra", "proshares",
     "direxion", "ishares", "vanguard", "invesco", "spdr",
     "3x", "2x", "-2x", "-3x", "leveraged", "inverse",
-    "레버리지", "인버스", "선물", "etf", "etn",
+    "레버리지", "인버스", "선물",
 ]
 
 def is_etf_or_leverage(name: str, ticker: str) -> bool:
-    """ETF, 레버리지, 인버스 상품 여부 판별"""
     t = ticker.upper().strip()
     n = name.lower().strip()
-
     if t in ETF_EXCLUDE_TICKERS:
         return True
     for kw in ETF_EXCLUDE_KEYWORDS:
         if kw in n:
             return True
-    # 티커가 4글자 이상이고 L/S로 끝나는 레버리지 패턴 (예: TQQQ, SOXL, TSLL)
-    if re.match(r'^[A-Z]{3,5}[LS]$', t):
+    # 4~6글자 티커가 L/S로 끝나는 레버리지 패턴 (SOXL, TSLL 등)
+    # 단, 4글자 이하 정상 주식 제외 (TSLA, AAPL 등은 해당 없음)
+    if re.match(r'^[A-Z]{4,6}[LS]$', t):
         return True
     return False
 
-
 # ─────────────────────────────────────────────
-# 업데이트 시간 제한 체크
+# 업데이트 시간 제한
 # ─────────────────────────────────────────────
 def should_skip_update() -> bool:
-    """
-    토 17:30 ~ 일 21:00 KST 사이에는 업데이트 안 함
-    (미국 시장 주말 휴장 + 토스증권 데이터 없음)
-    """
+    """토 17:30 ~ 일 21:00 KST 구간 스킵"""
     now = datetime.now(KST)
-    weekday = now.weekday()  # 0=월, 5=토, 6=일
-    hour = now.hour
-    minute = now.minute
-
-    # 토요일 17:30 이후
-    if weekday == 5 and (hour > 17 or (hour == 17 and minute >= 30)):
+    wd = now.weekday()  # 0=월 … 5=토 6=일
+    h, m = now.hour, now.minute
+    if wd == 5 and (h > 17 or (h == 17 and m >= 30)):
         return True
-    # 일요일 21:00 이전
-    if weekday == 6 and (hour < 21):
+    if wd == 6 and h < 21:
         return True
-
     return False
 
+def next_update_str(now_kst: datetime) -> str:
+    """다음 업데이트 시각 문자열 반환 (17:30 / 23:00 KST 기준)"""
+    h, m = now_kst.hour, now_kst.minute
+    # 아직 오늘 17:30 안 됐으면
+    if h < 17 or (h == 17 and m < 30):
+        t = now_kst.replace(hour=17, minute=30, second=0, microsecond=0)
+        return t.strftime("%Y-%m-%d 17:30 KST")
+    # 오늘 23:00 안 됐으면
+    if h < 23:
+        t = now_kst.replace(hour=23, minute=0, second=0, microsecond=0)
+        return t.strftime("%Y-%m-%d 23:00 KST")
+    # 내일 17:30
+    t = (now_kst + timedelta(days=1)).replace(hour=17, minute=30, second=0, microsecond=0)
+    return t.strftime("%Y-%m-%d 17:30 KST")
 
 # ─────────────────────────────────────────────
-# 환율 조회
+# 환율
 # ─────────────────────────────────────────────
 def get_usd_krw() -> float:
-    """현재 USD/KRW 환율 조회 (yfinance)"""
     try:
         t = yf.Ticker("KRW=X")
-        info = t.fast_info
-        rate = getattr(info, "last_price", None)
+        rate = getattr(t.fast_info, "last_price", None)
         if rate and 1000 < rate < 2000:
             return float(rate)
     except Exception:
         pass
     return DEFAULT_USD_KRW
 
-
-def format_krw(usd_amount_str: str, usd_krw: float) -> str:
-    """USD 시가총액 문자열을 한화로 변환"""
+def format_krw(usd_str: str, usd_krw: float) -> str:
     try:
-        # "$68.2B" → 68.2B 파싱
-        m = re.match(r'\$?([\d.]+)([TBM]?)', usd_amount_str.replace(",", ""))
+        m = re.match(r'\$?([\d.]+)([TBM]?)', usd_str.replace(",", ""))
         if not m:
             return ""
-        num = float(m.group(1))
-        unit = m.group(2)
-        if unit == "T":
-            usd = num * 1_000_000_000_000
-        elif unit == "B":
-            usd = num * 1_000_000_000
-        elif unit == "M":
-            usd = num * 1_000_000
-        else:
-            usd = num
-
+        num, unit = float(m.group(1)), m.group(2)
+        usd = num * {"T": 1e12, "B": 1e9, "M": 1e6}.get(unit, 1)
         krw = usd * usd_krw
-        if krw >= 1_000_000_000_000:
-            return f"약 {krw/1_000_000_000_000:.1f}조원"
-        elif krw >= 100_000_000:
-            return f"약 {krw/100_000_000:.0f}억원"
-        else:
-            return f"약 {krw/10_000:.0f}만원"
+        if krw >= 1e12:
+            return f"약 {krw/1e12:.1f}조원"
+        if krw >= 1e8:
+            return f"약 {krw/1e8:.0f}억원"
+        return f"약 {krw/1e4:.0f}만원"
     except Exception:
         return ""
 
-
 # ─────────────────────────────────────────────
-# 1단계: 토스증권 해외주식 크롤링
+# 1단계: 토스증권 크롤링 (Selenium + 스크롤)
 # ─────────────────────────────────────────────
 def fetch_toss_data():
-    print("[1/3] 토스증권 해외주식 거래대금 상위 종목 수집 중 (Selenium)...")
+    print("[1/3] 토스증권 해외주식 거래대금 상위 수집 중 (Selenium)...")
 
     try:
         from selenium import webdriver
         from selenium.webdriver.chrome.options import Options
         from selenium.webdriver.chrome.service import Service
         from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
         from bs4 import BeautifulSoup
     except ImportError as e:
         print(f"  [오류] 필수 패키지 미설치: {e}")
@@ -186,25 +179,56 @@ def fetch_toss_data():
     stocks = []
     try:
         driver.get(TOSS_URL)
-        time.sleep(10)
+        print("  페이지 로딩 중 (12초)...")
+        time.sleep(12)
 
-        # 거래대금 버튼 클릭 확인
+        # "거래대금" 탭 클릭 시도
         try:
-            btns = driver.find_elements(By.XPATH, "//button[@role='radio']")
+            btns = driver.find_elements(By.XPATH, "//button[@role='radio'] | //button[contains(@class,'tab')]")
             for btn in btns:
-                if btn.text.strip() == "거래대금":
+                txt = btn.text.strip()
+                if txt in ("거래대금", "토스증권 거래대금"):
                     btn.click()
-                    time.sleep(5)
+                    print(f"  '{txt}' 탭 클릭")
+                    time.sleep(4)
                     break
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"  탭 클릭 스킵: {e}")
 
-        time.sleep(5)
+        # ── 핵심: 스크롤 내려 100개 전체 로딩 ──
+        print("  리스트 전체 로딩을 위해 스크롤 중...")
+        last_count = 0
+        for scroll_try in range(20):
+            # 현재 페이지에서 종목 수 파악
+            html_tmp = driver.page_source
+            soup_tmp = __import__('bs4').BeautifulSoup(html_tmp, "html.parser")
+            text_tmp = soup_tmp.get_text(separator="\n", strip=True)
+            lines_tmp = [l.strip() for l in text_tmp.split("\n") if l.strip()]
+            cur_stocks = parse_toss_lines(lines_tmp)
+            cur_count = len(cur_stocks)
+            print(f"    스크롤 {scroll_try+1}: {cur_count}개 감지")
+            if cur_count >= TOP_N:
+                print(f"  ✓ {TOP_N}개 달성")
+                break
+            if cur_count == last_count and scroll_try > 3:
+                print(f"  더 이상 증가 없음 ({cur_count}개에서 멈춤)")
+                break
+            last_count = cur_count
+            # 페이지 맨 아래로 스크롤
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(2)
+            # 리스트 컨테이너 아래로도 스크롤
+            try:
+                list_el = driver.find_element(By.XPATH, "//ul[contains(@class,'list')] | //div[contains(@class,'chart')]")
+                driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", list_el)
+            except Exception:
+                pass
+            time.sleep(1)
 
         html = driver.page_source
+        from bs4 import BeautifulSoup
         soup = BeautifulSoup(html, "html.parser")
-        content = soup.get_text(separator="\n", strip=True)
-        lines = [l.strip() for l in content.split("\n") if l.strip()]
+        lines = [l.strip() for l in soup.get_text(separator="\n", strip=True).split("\n") if l.strip()]
         stocks = parse_toss_lines(lines)
 
     except Exception as e:
@@ -219,17 +243,21 @@ def fetch_toss_data():
 
 def parse_toss_lines(lines):
     stocks = []
+    # "순위·YYYY-MM-DD HH:MM 기준" 헤더 찾기
     start_idx = 0
     for idx, line in enumerate(lines):
-        if "순위·" in line and "기준" in line:
-            start_idx = idx + 4
+        if ("순위" in line or "순위·" in line) and "기준" in line:
+            start_idx = idx + 4  # 헤더 컬럼 건너뜀
             break
 
     i = start_idx
     rank = 1
-    while i < len(lines) and rank <= TOP_N:
-        line = lines[i]
-        if line.strip().isdigit() and int(line.strip()) == rank:
+    max_rank = TOP_N + 10  # 여유분
+
+    while i < len(lines) and rank <= max_rank:
+        line = lines[i].strip()
+        # 순위 숫자 감지
+        if line.isdigit() and int(line) == rank:
             try:
                 name = lines[i + 1].strip()
                 price_raw = lines[i + 2].strip()
@@ -239,8 +267,8 @@ def parse_toss_lines(lines):
                 change_match = re.search(r"([+-]?\d+\.?\d*)\s*%", change_raw)
                 change_pct = float(change_match.group(1)) if change_match else 0.0
 
-                vol_match = re.search(r"([\d,]+)\s*(억|조|만)?원", volume_raw)
-                vol_num = 0
+                vol_match = re.search(r"([\d,]+(?:\.\d+)?)\s*(억|조|만)?원", volume_raw)
+                vol_num = 0.0
                 if vol_match:
                     vol_num = float(vol_match.group(1).replace(",", ""))
                     unit = vol_match.group(2) or ""
@@ -263,32 +291,31 @@ def parse_toss_lines(lines):
             except (IndexError, ValueError):
                 pass
         i += 1
-    return stocks
+
+    return stocks[:TOP_N]
 
 
 # ─────────────────────────────────────────────
-# 2단계: 급등 필터링 + ETF/레버리지 제외
+# 2단계: 급등 필터링
 # ─────────────────────────────────────────────
 def filter_surge(stocks):
     print(f"[2/3] {SURGE_THRESHOLD}% 이상 급등 개별종목 필터링 중...")
-    surged = []
-    excluded_etf = 0
+    surged, excluded = [], 0
     for s in stocks:
         if s["change_pct"] < SURGE_THRESHOLD:
             continue
         ticker = get_ticker(s["name"]) or s["name"]
         if is_etf_or_leverage(s["name"], ticker):
             print(f"  [ETF/레버리지 제외] {s['name']} ({ticker})")
-            excluded_etf += 1
+            excluded += 1
             continue
         surged.append(s)
-
-    print(f"  → {len(surged)}개 급등 개별종목 발견 (ETF/레버리지 {excluded_etf}개 제외)")
+    print(f"  → {len(surged)}개 급등 개별종목 (ETF/레버리지 {excluded}개 제외)")
     return surged
 
 
 # ─────────────────────────────────────────────
-# 3단계: Yahoo Finance 상세 정보 수집
+# 3단계: Yahoo Finance 상세 정보
 # ─────────────────────────────────────────────
 TICKER_MAP = {
     "엔비디아": "NVDA", "테슬라": "TSLA", "애플": "AAPL",
@@ -299,16 +326,18 @@ TICKER_MAP = {
     "넷플릭스": "NFLX", "팔란티어": "PLTR", "보잉": "BA",
     "IBM": "IBM", "오라클": "ORCL", "서비스나우": "NOW",
     "마벨 테크놀로지": "MRVL", "에퀴닉스": "EQIX",
-    "로켓 랩": "RKLB", "아이온큐": "IONQ", "리게티 컴퓨팅": "RGTI",
-    "디 웨이브 퀀텀": "QBTS", "AST 스페이스모바일": "ASTS",
+    "로켓 랩": "RKLB", "아이온큐": "IONQ",
+    "리게티 컴퓨팅": "RGTI",          # ← ETF 아님, 양자컴퓨터 개별주
+    "디 웨이브 퀀텀": "QBTS",
+    "AST 스페이스모바일": "ASTS",
     "코인베이스": "COIN", "로빈후드": "HOOD", "스트래티지": "MSTR",
     "알리바바(ADR)": "BABA", "푸투 홀딩스(ADR)": "FUTU",
-    "삼성전자": "005930.KS", "SK하이닉스": "000660.KS",
     "샌디스크": "SNDK", "웨스턴 디지털": "WDC", "델 테크놀로지스": "DELL",
     "세레브라스 시스템즈": "CBRS", "코어위브": "CRWV",
     "글로벌파운드리스": "GFS", "나비타스 세미컨덕터": "NVTS",
     "아이렌": "AIXI", "인플렉션": "INFN", "루멘텀 홀딩스": "LITE",
-    "블룸 에너지": "BE", "코히런트": "COHR", "크리도 테크놀로지 그룹 홀딩": "CRDO",
+    "블룸 에너지": "BE", "코히런트": "COHR",
+    "크리도 테크놀로지 그룹 홀딩": "CRDO",
     "AXT": "AXTI", "ASE 테크놀로지 홀딩(ADR)": "ASX",
     "TTM 테크놀로지스": "TTMI", "비스트라 에너지": "VST",
     "레드와이어": "RDW", "네비우스 그룹": "NBIS",
@@ -316,13 +345,11 @@ TICKER_MAP = {
     "소파이 테크놀로지스": "SOFI", "플렉스": "FLEX",
     "에코스타": "SATS", "써클 인터넷 그룹": "CRCL",
     "베리사인": "VRSN", "펨비나 파이프라인": "PBA",
-    "포르티스": "FTS", "티 로웨 프라이스 그룹": "TROW",
-    "사우스 보우": "SOBO", "알곤퀸 파워 앤 유틸리티스": "AQN",
-    "빌더스 퍼스트소스": "BLDR", "비트마인 이머션 테크놀로지스": "BTBT",
-    "데스티니 테크 100": "DXYZ", "코드 에너지": "CDEX",
-    "브룩필드 인프라스트럭처": "BIP", "올드 리퍼블릭 인터내셔널": "ORI",
-    "LPL 파이낸셜 홀딩스": "LPLA", "아카리 테라퓨틱스": "ACRS",
-    "인플렉션": "INFN", "리게티 컴퓨팅": "RGTI",
+    "아카리 테라퓨틱스(ADR)": "ACRS", "아카리 테라퓨틱스": "ACRS",
+    "삼성전자": "005930.KS", "SK하이닉스": "000660.KS",
+    "스위트그린": "SG", "맥스리니어": "MXL",
+    "캘러보 그로우아스": "CALB",
+    "팸비나 파이프라인": "PPL.TO",
 }
 
 COUNTRY_KO = {
@@ -343,17 +370,14 @@ def get_ticker(name):
         return name
     return None
 
-
 def fetch_yahoo_info(ticker, usd_krw):
     try:
         t = yf.Ticker(ticker)
         info = t.info
         if not info:
             return None
-
         country_en = info.get("country", "")
-        country = COUNTRY_KO.get(country_en, country_en) if country_en else "정보 없음"
-
+        country = COUNTRY_KO.get(country_en, country_en) or "정보 없음"
         officers = info.get("companyOfficers", [])
         ceo = "정보 없음"
         for o in officers:
@@ -363,19 +387,17 @@ def fetch_yahoo_info(ticker, usd_krw):
                 break
         if ceo == "정보 없음" and officers:
             ceo = officers[0].get("name", "정보 없음")
-
         mkt_cap = info.get("marketCap", 0)
         mkt_cap_str = "정보 없음"
         mkt_cap_krw = ""
         if mkt_cap:
-            if mkt_cap >= 1_000_000_000_000:
-                mkt_cap_str = f"${mkt_cap/1_000_000_000_000:.1f}T"
-            elif mkt_cap >= 1_000_000_000:
-                mkt_cap_str = f"${mkt_cap/1_000_000_000:.1f}B"
+            if mkt_cap >= 1e12:
+                mkt_cap_str = f"${mkt_cap/1e12:.1f}T"
+            elif mkt_cap >= 1e9:
+                mkt_cap_str = f"${mkt_cap/1e9:.1f}B"
             else:
-                mkt_cap_str = f"${mkt_cap/1_000_000:.0f}M"
+                mkt_cap_str = f"${mkt_cap/1e6:.0f}M"
             mkt_cap_krw = format_krw(mkt_cap_str, usd_krw)
-
         short_float = info.get("shortPercentOfFloat")
         short_ratio = info.get("shortRatio")
         if short_float is not None:
@@ -384,25 +406,18 @@ def fetch_yahoo_info(ticker, usd_krw):
             short_str = f"숏 레이시오 {short_ratio:.1f}일"
         else:
             short_str = "정보 없음"
-
         return {
-            "country": country,
-            "country_en": country_en,
-            "ceo": ceo,
-            "market_cap": mkt_cap_str,
-            "market_cap_krw": mkt_cap_krw,
+            "country": country, "country_en": country_en, "ceo": ceo,
+            "market_cap": mkt_cap_str, "market_cap_krw": mkt_cap_krw,
             "sector": info.get("sector", "정보 없음"),
             "industry": info.get("industry", "정보 없음"),
             "business_summary": (info.get("longBusinessSummary", "") or "")[:200],
-            "short_interest": short_str,
-            "short_interest_source": "fintel.io",
-            "website": info.get("website", ""),
-            "exchange": info.get("exchange", ""),
+            "short_interest": short_str, "short_interest_source": "fintel.io",
+            "website": info.get("website", ""), "exchange": info.get("exchange", ""),
         }
     except Exception as e:
-        print(f"    [경고] {ticker} 조회 실패: {e}")
+        print(f"  [경고] {ticker} 조회 실패: {e}")
         return None
-
 
 def enrich_with_yahoo(stocks, usd_krw):
     print("[3/3] Yahoo Finance 상세 정보 수집 중...")
@@ -415,8 +430,7 @@ def enrich_with_yahoo(stocks, usd_krw):
             detail = fetch_yahoo_info(ticker, usd_krw) or {}
             time.sleep(0.5)
         else:
-            print(f"  → {stock['name']} 티커 미등록")
-
+            print(f"  → {stock['name']} 티커 미등록 (수동 추가 필요)")
         enriched.append({
             **stock,
             "ticker": ticker or "",
@@ -437,51 +451,33 @@ def enrich_with_yahoo(stocks, usd_krw):
 
 
 # ─────────────────────────────────────────────
-# 메인 실행
+# 메인
 # ─────────────────────────────────────────────
 def main():
     now_kst = datetime.now(KST)
     print(f"=== 급등주주의보 데이터 수집 시작 ({now_kst.strftime('%Y-%m-%d %H:%M KST')}) ===")
 
-    # 업데이트 시간 제한 체크
     if should_skip_update():
         print("[건너뜀] 토 17:30 ~ 일 21:00 KST 구간은 업데이트하지 않습니다.")
         return
 
-    # 환율 조회
     print("  환율 조회 중...")
     usd_krw = get_usd_krw()
     print(f"  USD/KRW: {usd_krw:.1f}")
 
-    # 다음 업데이트 시간 계산
-    weekday = now_kst.weekday()
-    hour = now_kst.hour
-    if hour < 5 or (hour == 5 and now_kst.minute < 30):
-        next_update = now_kst.replace(hour=5, minute=30, second=0, microsecond=0)
-    elif hour < 11:
-        next_update = now_kst.replace(hour=11, minute=0, second=0, microsecond=0)
-    else:
-        # 다음날 05:30
-        next_update = (now_kst + timedelta(days=1)).replace(hour=5, minute=30, second=0, microsecond=0)
-    next_update_str = next_update.strftime("%Y-%m-%d 05:30 KST") if next_update.hour == 5 else next_update.strftime("%Y-%m-%d 11:00 KST")
+    nxt = next_update_str(now_kst)
 
-    # 1. 토스증권 데이터 수집
     all_stocks = fetch_toss_data()
     if not all_stocks:
-        print("[경고] 토스증권 데이터 수집 실패.")
-        all_stocks = []
+        print("[경고] 토스증권 데이터 수집 실패. 빈 결과로 저장합니다.")
 
-    # 2. 급등 필터링 + ETF 제외
     surged = filter_surge(all_stocks)
-
-    # 3. Yahoo Finance 상세 정보 추가
     enriched = enrich_with_yahoo(surged, usd_krw) if surged else []
 
-    # 4. JSON 저장
     output = {
         "updated_at": now_kst.strftime("%Y-%m-%d %H:%M KST"),
         "updated_at_iso": now_kst.isoformat(),
-        "next_update": next_update_str,
+        "next_update": nxt,
         "threshold": SURGE_THRESHOLD,
         "total_scanned": len(all_stocks),
         "surge_count": len(enriched),
@@ -496,20 +492,19 @@ def main():
         json.dump(output, f, ensure_ascii=False, indent=2)
 
     # public 폴더에도 복사
-    public_path = os.path.join(os.path.dirname(OUTPUT_PATH), "..", "client", "public", "data", "stocks.json")
-    public_path = os.path.normpath(public_path)
+    public_path = os.path.normpath(
+        os.path.join(os.path.dirname(OUTPUT_PATH), "..", "client", "public", "data", "stocks.json")
+    )
     if os.path.exists(os.path.dirname(public_path)):
         import shutil
         shutil.copy2(OUTPUT_PATH, public_path)
-        print(f"  → public 폴더에도 복사 완료")
+        print("  → public 폴더에도 복사 완료")
 
-    print(f"\n✅ 완료! {len(enriched)}개 급등 개별종목 → {OUTPUT_PATH}")
-    if enriched:
-        print("\n--- 급등 종목 목록 ---")
-        for s in enriched:
-            print(f"  {s['rank']:>3}위 {s['name']:<30} {s['change_pct']:+.2f}%  {s['volume']}  [{s.get('country','?')}]")
-    else:
-        print("\n  현재 급등 개별종목이 없습니다.")
+    print(f"\n✅ 완료! {len(enriched)}개 급등 종목 → {OUTPUT_PATH}")
+    for s in enriched:
+        print(f"  {s['rank']:>3}위 {s['name']:<30} {s['change_pct']:+.2f}% {s['volume']} [{s.get('country','?')}]")
+    if not enriched:
+        print("  현재 급등 개별종목 없음")
 
 
 if __name__ == "__main__":
