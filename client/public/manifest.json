@@ -1,11 +1,11 @@
 {
   "name": "급등주주의보",
   "short_name": "급등주의보",
-  "description": "토스증권 거래대금 상위 종목 중 20% 이상 급등 종목 알리미",
+  "description": "끊지 못하겠다면 딱 한번만 알아보자. 토스증권 거래대금 상위 20% 이상 급등 종목 알리미",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0e1a",
-  "theme_color": "#0a0e1a",
+  "background_color": "#F8F9FA",
+  "theme_color": "#3B82F6",
   "orientation": "portrait",
   "icons": [
     {

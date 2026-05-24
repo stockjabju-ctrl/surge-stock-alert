@@ -1,61 +1,54 @@
 name: 급등주 데이터 자동 업데이트
 
 on:
-  # 매일 05:30 KST (= 20:30 UTC 전날) 와 11:00 KST (= 02:00 UTC)
+  # 평일(월~금)만 실행
+  # 05:30 KST = 20:30 UTC (전날)
+  # 11:00 KST = 02:00 UTC
   schedule:
-    - cron: "30 20 * * 1-5"   # 평일 05:30 KST
-    - cron: "0 2 * * 2-6"     # 평일 11:00 KST
-  # 수동 실행 버튼
-  workflow_dispatch:
+    - cron: "30 20 * * 0-4"   # 월~금 05:30 KST (UTC 기준 일~목 20:30)
+    - cron: "0 2 * * 1-5"     # 월~금 11:00 KST (UTC 기준 월~금 02:00)
+  workflow_dispatch:            # 수동 실행 버튼
 
 jobs:
   update:
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # 파일 커밋 권한
+      contents: write
 
     steps:
-      # 1. 코드 체크아웃
       - name: 코드 체크아웃
         uses: actions/checkout@v4
 
-      # 2. Python 설치
       - name: Python 3.11 설치
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      # 3. Chrome & ChromeDriver 설치 (Selenium용)
       - name: Chrome 설치
         uses: browser-actions/setup-chrome@v1
         with:
           chrome-version: stable
 
-      # 4. Python 패키지 설치
       - name: Python 패키지 설치
         run: |
           pip install --upgrade pip
           pip install selenium yfinance requests beautifulsoup4 webdriver-manager
 
-      # 5. 데이터 수집 스크립트 실행
-      - name: 급등주 데이터 수집
+      - name: 급등주 데이터 수집 (해외주식 개별종목)
         run: |
           python scripts/fetch_data.py
         env:
           PYTHONUNBUFFERED: "1"
 
-      # 6. 생성된 JSON을 public 폴더에 복사
       - name: JSON을 public 폴더에 복사
         run: |
           mkdir -p client/public/data
           cp data/stocks.json client/public/data/stocks.json
 
-      # 7. 변경사항 커밋 & 푸시
       - name: 데이터 커밋 및 푸시
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/stocks.json client/public/data/stocks.json
-          # 변경사항이 있을 때만 커밋
-          git diff --staged --quiet || git commit -m "📈 급등주 데이터 자동 업데이트 $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST')"
+          git diff --staged --quiet || git commit -m "📈 급등주 자동 업데이트 $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST')"
           git push
