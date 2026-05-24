@@ -242,27 +242,57 @@ def fetch_toss_data():
 
 
 def parse_toss_lines(lines):
+    """
+    토스증권 텍스트에서 종목 파싱.
+    각 종목 행 구조:
+      [순위숫자]
+      [종목명]
+      [티커배지 — 대문자+숫자 1~7자, 있을 수도 없을 수도]
+      [가격]
+      [등락률]
+      [거래대금]
+    """
     stocks = []
-    # "순위·YYYY-MM-DD HH:MM 기준" 헤더 찾기
     start_idx = 0
     for idx, line in enumerate(lines):
         if ("순위" in line or "순위·" in line) and "기준" in line:
-            start_idx = idx + 4  # 헤더 컬럼 건너뜀
+            start_idx = idx + 4
             break
 
     i = start_idx
     rank = 1
-    max_rank = TOP_N + 10  # 여유분
+    max_rank = TOP_N + 10
+
+    TICKER_RE = re.compile(r'^[A-Z][A-Z0-9]{0,6}$')   # 티커 패턴: 대문자로 시작, 최대 7자
 
     while i < len(lines) and rank <= max_rank:
         line = lines[i].strip()
-        # 순위 숫자 감지
         if line.isdigit() and int(line) == rank:
             try:
                 name = lines[i + 1].strip()
-                price_raw = lines[i + 2].strip()
-                change_raw = lines[i + 3].strip()
-                volume_raw = lines[i + 4].strip()
+
+                # ── 티커 배지 감지 ──────────────────────────────
+                # 종목명 바로 다음 줄이 티커 패턴이면 캡처, 아니면 티커 없음
+                candidate = lines[i + 2].strip() if i + 2 < len(lines) else ""
+                if TICKER_RE.match(candidate):
+                    toss_ticker = candidate
+                    off = 1   # 티커 줄 있음 → 나머지 필드 +1 이동
+                else:
+                    toss_ticker = ""
+                    off = 0
+
+                price_raw  = lines[i + 2 + off].strip()
+                change_raw = lines[i + 3 + off].strip()
+                volume_raw = lines[i + 4 + off].strip()
+
+                # 가격·등락률·거래대금 검증 (티커 감지 오류 방지)
+                if not re.search(r'%', change_raw):
+                    # change_raw가 % 없으면 off 추정 틀림 → 재시도
+                    toss_ticker = ""
+                    off = 0
+                    price_raw  = lines[i + 2].strip()
+                    change_raw = lines[i + 3].strip()
+                    volume_raw = lines[i + 4].strip()
 
                 change_match = re.search(r"([+-]?\d+\.?\d*)\s*%", change_raw)
                 change_pct = float(change_match.group(1)) if change_match else 0.0
@@ -272,21 +302,21 @@ def parse_toss_lines(lines):
                 if vol_match:
                     vol_num = float(vol_match.group(1).replace(",", ""))
                     unit = vol_match.group(2) or ""
-                    if unit == "조":
-                        vol_num *= 10000
-                    elif unit == "만":
-                        vol_num /= 10000
+                    if unit == "조":   vol_num *= 10000
+                    elif unit == "만": vol_num /= 10000
 
+                print(f"  파싱 {rank:>3}위: {name} [{toss_ticker or '티커없음'}] {change_pct:+.1f}%")
                 stocks.append({
                     "rank": rank,
                     "name": name,
+                    "toss_ticker": toss_ticker,   # ← 토스에서 직접 긁은 티커
                     "price": price_raw,
                     "change_pct": change_pct,
                     "volume": volume_raw,
                     "volume_num": vol_num,
                 })
                 rank += 1
-                i += 5
+                i += 5 + off
                 continue
             except (IndexError, ValueError):
                 pass
@@ -354,7 +384,8 @@ TICKER_MAP = {
     "하모닉": "HLIT",
     "하일리온 홀딩스": "HYLN",
     "ASTX": "ASTX",
-    "피코세라(ADR)": "PCSA",
+    "피코세라(ADR)": "PCLA",
+    "피코세라": "PCLA",
     "HP": "HPQ",
     "HP 인크": "HPQ",
     "버텍스 파마슈티컬스": "VRTX",
@@ -408,14 +439,42 @@ def get_ticker(name):
     # TICKER_MAP에 없는 한글 종목명 → 야후 파이낸스 검색으로 자동 조회
     return search_ticker_yahoo(name)
 
+# city 이름으로 국가 추정 (country 필드가 비어있을 때 보조)
+CITY_TO_COUNTRY = {
+    "tokyo": "일본", "osaka": "일본", "kyoto": "일본", "nagoya": "일본",
+    "yokohama": "일본", "sapporo": "일본", "fukuoka": "일본",
+    "beijing": "중국", "shanghai": "중국", "shenzhen": "중국",
+    "guangzhou": "중국", "hangzhou": "중국", "nanjing": "중국",
+    "hong kong": "홍콩",
+    "seoul": "한국", "busan": "한국", "incheon": "한국",
+    "taipei": "대만", "hsinchu": "대만", "tainan": "대만",
+    "singapore": "싱가포르",
+    "amsterdam": "네덜란드", "eindhoven": "네덜란드",
+    "london": "영국", "cambridge": "영국", "oxford": "영국",
+    "tel aviv": "이스라엘", "herzliya": "이스라엘", "petah tikva": "이스라엘",
+    "toronto": "캐나다", "montreal": "캐나다", "vancouver": "캐나다",
+    "stockholm": "스웨덴", "gothenburg": "스웨덴",
+    "berlin": "독일", "munich": "독일", "hamburg": "독일",
+    "paris": "프랑스", "lyon": "프랑스",
+    "sydney": "호주", "melbourne": "호주",
+    "bangalore": "인도", "mumbai": "인도", "hyderabad": "인도",
+    "sao paulo": "브라질", "brasilia": "브라질",
+    "dublin": "아일랜드",
+    "george town": "케이맨 제도", "hamilton": "버뮤다",
+}
+
 def fetch_yahoo_info(ticker, usd_krw):
     try:
         t = yf.Ticker(ticker)
         info = t.info
-        if not info:
+        if not info or info.get("trailingPegRatio") is None and not info.get("shortName"):
             return None
+        # ── 국가 결정: country 필드 → city 보조 순 ──────────────────
         country_en = info.get("country", "")
-        country = COUNTRY_KO.get(country_en, country_en) or "정보 없음"
+        country = COUNTRY_KO.get(country_en, country_en)
+        if not country:
+            city = (info.get("city") or "").lower().strip()
+            country = CITY_TO_COUNTRY.get(city, "정보 없음")
         officers = info.get("companyOfficers", [])
         ceo = "정보 없음"
         for o in officers:
@@ -461,14 +520,18 @@ def enrich_with_yahoo(stocks, usd_krw):
     print("[3/3] Yahoo Finance 상세 정보 수집 중...")
     enriched = []
     for stock in stocks:
-        ticker = get_ticker(stock["name"])
+        # 티커 우선순위: ① 토스에서 직접 긁은 티커 → ② TICKER_MAP → ③ 야후 자동검색
+        toss_ticker = stock.get("toss_ticker", "")
+        ticker = toss_ticker or get_ticker(stock["name"])
+        source_label = "[토스]" if toss_ticker else ("[맵]" if stock["name"] in TICKER_MAP else "[검색]")
+
         detail = {}
         if ticker:
-            print(f"  → {stock['name']} ({ticker}) 조회 중...")
+            print(f"  → {stock['name']} ({ticker}) {source_label} 조회 중...")
             detail = fetch_yahoo_info(ticker, usd_krw) or {}
             time.sleep(0.5)
         else:
-            print(f"  → {stock['name']} 티커 미등록 (수동 추가 필요)")
+            print(f"  → {stock['name']} 티커 미발견")
         enriched.append({
             **stock,
             "ticker": ticker or "",
