@@ -410,6 +410,8 @@ TICKER_MAP = {
     "아너스트 컴퍼니": "HNST",
     "레이도스 홀딩스": "LDOS",
     "웰스파고": "WFC",
+    "파이어플라이 에어로스페이스": "FLY",
+    "파이어플라이": "FLY",
 }
 
 COUNTRY_KO = {
@@ -453,6 +455,24 @@ def get_ticker(name):
         return name
     # TICKER_MAP에 없는 한글 종목명 → 야후 파이낸스 검색으로 자동 조회
     return search_ticker_yahoo(name)
+
+# ─────────────────────────────────────────────
+# 번역 (영문 종목설명 → 한국어)
+# ─────────────────────────────────────────────
+def translate_to_ko(text: str) -> str:
+    """영문 텍스트를 한국어로 번역. 실패 시 원문 반환."""
+    if not text:
+        return ""
+    try:
+        from deep_translator import GoogleTranslator
+        # 500자까지만 번역 (API 제한 방지)
+        chunk = text[:500]
+        result = GoogleTranslator(source="en", target="ko").translate(chunk)
+        return result or text
+    except Exception as e:
+        print(f"  [번역 실패] {e}")
+        return text
+
 
 # city 이름으로 국가 추정 (country 필드가 비어있을 때 보조)
 CITY_TO_COUNTRY = {
@@ -523,7 +543,7 @@ def fetch_yahoo_info(ticker, usd_krw):
             "market_cap": mkt_cap_str, "market_cap_krw": mkt_cap_krw,
             "sector": info.get("sector", "정보 없음"),
             "industry": info.get("industry", "정보 없음"),
-            "business_summary": (info.get("longBusinessSummary", "") or "")[:200],
+            "business_summary": translate_to_ko((info.get("longBusinessSummary", "") or "")[:500]),
             "short_interest": short_str, "short_interest_source": "fintel.io",
             "website": info.get("website", ""), "exchange": info.get("exchange", ""),
         }
