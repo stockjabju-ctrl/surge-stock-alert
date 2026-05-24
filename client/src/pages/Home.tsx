@@ -417,7 +417,9 @@ function StockRow({ stock, updatedAt }: { stock: Stock; updatedAt: string }) {
             </div>
             <div className="text-right shrink-0">
               <p className="surge-pct text-base">{`+${stock.change_pct.toFixed(1)}%`}</p>
-              <p className="text-xs mt-0.5" style={{ color: "oklch(0.65 0.008 250)" }}>{stock.volume}</p>
+              <p className="text-xs mt-0.5" style={{ color: "oklch(0.65 0.008 250)" }}>
+                <span style={{ color: "oklch(0.75 0.005 250)" }}>거래대금 </span>{stock.volume}
+              </p>
             </div>
             <div className="shrink-0 ml-1">
               {detailOpen
@@ -654,6 +656,7 @@ export default function Home() {
               ["⚡", "급등주는 타이밍이 생명. 올라타야 할 때 종목 스터디를 할 시간이 없다."],
               ["🌍", "그래도 최소한, 지금 내가 올라타려는 게 중국 주식인지 이스라엘 주식인지는 알아야 하지 않겠어?"],
               ["🛡️", "지정학 리스크 높은 나라 주식에 물려서 피해보는 일, 이 서비스로 조금이라도 줄여보자."],
+              ["👤", "급하게 타고 싶은 마음 잘 알지만, 국가만 나눠봐도 대략 보이죠? 다만 미국에 사무소를 둔 외국 기업이 미국으로 보일 수 있으니, 종목 상세정보의 대표자명도 꼭 확인하세요."],
             ].map(([emoji, text]) => (
               <div key={emoji} className="story-card">
                 <span className="text-lg shrink-0">{emoji}</span>
@@ -672,9 +675,14 @@ export default function Home() {
             <div className="px-4 mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: "oklch(0.57 0.22 25)" }} />
-                <span className="text-sm font-bold" style={{ color: "oklch(0.25 0.01 250)" }}>
-                  급등주 탑승 전 종목 정보 빠르게 보기
-                </span>
+                <div>
+                  <span className="text-sm font-bold" style={{ color: "oklch(0.25 0.01 250)" }}>
+                    급등주 탑승 전 종목 정보 빠르게 보기
+                  </span>
+                  <p className="text-xs mt-0.5" style={{ color: "oklch(0.60 0.01 250)" }}>
+                    토스증권 해외주식 거래대금 TOP 100 기준
+                  </p>
+                </div>
               </div>
               <button onClick={loadData} className="flex items-center gap-1 text-xs"
                 style={{ color: "oklch(0.50 0.22 260)" }}>
