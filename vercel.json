@@ -3,6 +3,10 @@
   "outputDirectory": "dist/public",
   "installCommand": "pnpm install",
   "framework": "vite",
+  "crons": [
+    { "path": "/api/auto-cron", "schedule": "30 8 * * 1-5" },
+    { "path": "/api/auto-cron", "schedule": "0 14 * * 1-5" }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
