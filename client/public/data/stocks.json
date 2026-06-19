@@ -1,13 +1,13 @@
 {
-  "updated_at": "2026-06-20 02:05 KST",
-  "updated_at_iso": "2026-06-20T02:05:50.348598+09:00",
+  "updated_at": "2026-06-20 05:20 KST",
+  "updated_at_iso": "2026-06-20T05:20:29.416241+09:00",
   "next_update": "2026-06-20 17:30 KST",
   "threshold": 15.0,
   "total_scanned": 100,
   "surge_count": 5,
   "market": "해외주식",
   "source": "토스증권 해외주식 거래대금 상위",
-  "usd_krw": 1532.1600341796875,
+  "usd_krw": 1530.469970703125,
   "stocks": [
     {
       "rank": 7,
