@@ -1,12 +1,35 @@
 {
-  "updated_at": "2026-09-04 21:48 KST",
-  "updated_at_iso": "2026-09-04T21:48:14.361448+09:00",
-  "next_update": "2026-09-04 23:00 KST",
+  "updated_at": "2026-09-05 02:31 KST",
+  "updated_at_iso": "2026-09-05T02:31:38.890450+09:00",
+  "next_update": "2026-09-05 17:30 KST",
   "threshold": 15.0,
   "total_scanned": 100,
-  "surge_count": 0,
+  "surge_count": 1,
   "market": "해외주식",
   "source": "토스증권 해외주식 거래대금 상위",
-  "usd_krw": 1351.6800537109375,
-  "stocks": []
+  "usd_krw": 1345.3299560546875,
+  "stocks": [
+    {
+      "rank": 54,
+      "name": "아메리칸 아웃도어 브랜즈",
+      "toss_ticker": "",
+      "price": "19,590원",
+      "change_pct": 43.95,
+      "volume": "1,907만원",
+      "volume_num": 0.1907,
+      "ticker": "",
+      "country": "정보 없음",
+      "country_en": "",
+      "ceo": "정보 없음",
+      "market_cap": "정보 없음",
+      "market_cap_krw": "",
+      "sector": "정보 없음",
+      "industry": "정보 없음",
+      "business_summary": "",
+      "short_interest": "정보 없음",
+      "short_interest_source": "fintel.io",
+      "website": "",
+      "exchange": ""
+    }
+  ]
 }
