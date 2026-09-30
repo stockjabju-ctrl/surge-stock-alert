@@ -1,12 +1,35 @@
 {
-  "updated_at": "2026-09-30 04:14 KST",
-  "updated_at_iso": "2026-09-30T04:14:41.386582+09:00",
-  "next_update": "2026-09-30 17:30 KST",
+  "updated_at": "2026-10-01 00:01 KST",
+  "updated_at_iso": "2026-10-01T00:01:52.516794+09:00",
+  "next_update": "2026-10-01 17:30 KST",
   "threshold": 15.0,
-  "total_scanned": 0,
-  "surge_count": 0,
+  "total_scanned": 100,
+  "surge_count": 1,
   "market": "해외주식",
   "source": "토스증권 해외주식 거래대금 상위",
-  "usd_krw": 1353.1800537109375,
-  "stocks": []
+  "usd_krw": 1355.5799560546875,
+  "stocks": [
+    {
+      "rank": 48,
+      "name": "퍼시픽 바이오사이언시스 캘리포니아",
+      "toss_ticker": "",
+      "price": "3,056원",
+      "change_pct": 22.95,
+      "volume": "5,326만원",
+      "volume_num": 0.5326,
+      "ticker": "",
+      "country": "정보 없음",
+      "country_en": "",
+      "ceo": "정보 없음",
+      "market_cap": "정보 없음",
+      "market_cap_krw": "",
+      "sector": "정보 없음",
+      "industry": "정보 없음",
+      "business_summary": "",
+      "short_interest": "정보 없음",
+      "short_interest_source": "fintel.io",
+      "website": "",
+      "exchange": ""
+    }
+  ]
 }
