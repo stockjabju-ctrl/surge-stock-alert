@@ -1,12 +1,35 @@
 {
-  "updated_at": "2026-11-20 07:03 KST",
-  "updated_at_iso": "2026-11-20T07:03:13.905644+09:00",
-  "next_update": "2026-11-20 17:30 KST",
+  "updated_at": "2026-11-21 02:03 KST",
+  "updated_at_iso": "2026-11-21T02:03:41.227116+09:00",
+  "next_update": "2026-11-21 17:30 KST",
   "threshold": 15.0,
   "total_scanned": 100,
-  "surge_count": 0,
+  "surge_count": 1,
   "market": "해외주식",
   "source": "토스증권 해외주식 거래대금 상위",
-  "usd_krw": 1333.93994140625,
-  "stocks": []
+  "usd_krw": 1342.449951171875,
+  "stocks": [
+    {
+      "rank": 63,
+      "name": "SNDQ",
+      "toss_ticker": "",
+      "price": "63,199원",
+      "change_pct": 32.28,
+      "volume": "3,154만원",
+      "volume_num": 0.3154,
+      "ticker": "SNDQ",
+      "country": "정보 없음",
+      "country_en": "",
+      "ceo": "정보 없음",
+      "market_cap": "정보 없음",
+      "market_cap_krw": "",
+      "sector": "정보 없음",
+      "industry": "정보 없음",
+      "business_summary": "Under normal market circumstances, the fund will maintain at least 80% exposure to financial instruments that provide two times inverse leveraged exposure to the daily performance of SNDK. It is non-diversified.",
+      "short_interest": "정보 없음",
+      "short_interest_source": "fintel.io",
+      "website": "",
+      "exchange": "BTS"
+    }
+  ]
 }
